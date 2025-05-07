@@ -293,5 +293,15 @@ $ git clone https://github.com/libgit2/libgit2
 
 这会在**当前目录**中创建一个名为“libgit2”的目录，并在这个目录下（即“libgit2”） 初始化一个`.git`文件夹，从远程仓库拉取下所有数据放入`.git`文件夹，然后从中读取最新版本的文件的拷贝。<br>如果进入到新建的`libgit2`文件夹，你会发现所有的项目文件已经在里面了，准备就绪等待后续的开发和使用。
 
+如果想在克隆仓库的时候，自定义本地仓库的名字，你可以通过额外的参数指定新的目录名：
+
+```shell
+$ git clone https://github.com/libgit2/libgit2 mylibgit
+```
+
+这会执行与上一条命令相同的操作，但目标目录名变为了`mylibgit`。
+
+Git 支持多种数据传输协议。上面的例子使用的是`https://`协议，也可以使用`git://`协议或者 SSH 传输协议，比如，`user@server:path/to/repo.git`。
+
 
 
