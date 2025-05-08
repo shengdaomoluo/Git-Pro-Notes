@@ -417,3 +417,10 @@ $ cat .gitignore
 
 `git diff --staged`命令是查看已暂存的将要添加到下次提交里的内容。<br>即比对**已暂存文件**与**最后一次提交的文件**差异。
 
+以下图为例：
+
+![image-20250508174718727](/Users/wangxiaolong/Library/Application Support/typora-user-images/image-20250508174718727.png)
+
+<big>**注意：**</big>`git diff`本身只显示尚未暂存的改动，而不是自上次提交以来所做的所有改动。
+
+`git diff --cached`命令与`git diff --staged`是等价的，都是查看已经暂存起来的内容与工作目录之间的变化。
