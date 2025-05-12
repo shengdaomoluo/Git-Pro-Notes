@@ -571,3 +571,6 @@ $ git log --pretty="%h -%s" --author='XiaoLong Wang' --since="2025-05-01" --befo
 ```
 
 <img src="https://p.ipic.vip/c1mbpl.png" alt="image-20250512064052724" style="zoom:67%;" />
+
+## 2.4  撤消操作
+
