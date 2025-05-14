@@ -628,11 +628,59 @@ $ git checkout -- <file> # "--"与“<file>”之间有一个空格
 
 **`git remote add <shortname> <url>`**命令是添加一个新的远程Git仓库，并指定一个方便使用的简写。
 
-以用该命令在`Git-Pro-Notes`远程仓库中，添加一个名为 `GPNs`的新的远程仓库为例：
+以用该命令在 github的`Git-Pro-Notes`远程仓库中，添加一个名为 `GPNs`的新的远程仓库为例：
 
 ```shell
-$ git remote add GPNs https://github.com/shengdaomoluo/Git-Pro-Notes
+$ git remote add GPNs https://github.com/shengdaomoluo/Git-Pro-Notes.git
 ```
 
+执行该命令后，通过 `git remote -v`查看远程仓库如下：<img src="https://p.ipic.vip/bq57iy.png" alt="新建的名为“GPNs”远程仓库" style="zoom:67%;" />
 
+### 2.5.3  从远程仓库中抓取与拉取
+
+**`git fetch <remote>`**命令可以从远程仓库中获取数据。这个命令会访问远程仓库，从中拉取所有你还没有的数据。执行完毕后，你将会拥有那个远程仓库中所有分支的引用，可以随时合并或查看。
+
+**必须注意**：`git fetch`命令只会将数据下载到你的本地仓库——它不会自动合并或修改你当前的工作。当你准备好时，必须手动将其合并入你的工作。
+
+### 2.5.4  推送到远程仓库
+
+**`git push <remote> <branch>`**命令将项目推送到上游的远程仓库中。
+
+比如要将`main`分支推送到`origin`服务器时，运行以下命令：
+
+```shell
+$ git push origin main
+```
+
+### 2.5.5  查看某个远程仓库
+
+**`git remote show <remote>`**命令可以查看某一个远程仓库的更多信息。
+
+比如想要查看 缩写名为`origin`的远程仓库的信息，可以执行以下命令：
+
+```shell
+$ git remote show origin
+```
+
+会得到下面的信息：<br><img src="https://p.ipic.vip/j64xdo.png" alt="查看远程仓库的信息" style="zoom:67%;" />
+
+### 2.5.6  远程仓库的重命名与移除
+
+**`git remote rename`**命令用于修改一个远程仓库的简写名。
+
+例如将远程仓库`origin`重命名为`GPNs`。可以执行以下命令：
+
+```shell
+$ git remote rename origin GPNs # “origin”为原简写名；“GPNs”为要更改的简写名
+```
+
+**`git remote remove`**或**`git remote rm`**命令可以移除一个远程仓库。
+
+例如要移除简写名为`origin`远程仓库，可以使用以下命令：
+
+```shell
+$ git remote rm origin
+```
+
+会得到以下信息：<br><img src="https://p.ipic.vip/9vdqz7.png" alt="image-20250514181030254" style="zoom:67%;" />
 
