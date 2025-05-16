@@ -799,3 +799,23 @@ $ git tag -d show
 
 **`git switch -`**命令用于撤消`git checkout <tagname>`命令。
 
+## 2.7  Git别名
+
+Git 不会在输入部分命令时，自动联想出想要输入的命令。可以通过设置**别名**的方式，在输入部分命令情况下，达到输入全部命令的目的。这样使得 Git 更简单、容易。
+
+**`git config --global alias.xx ……`**命令，用于给完整的 Git 命令设置一个别名。在输入 Git 命令时，可使用别名命令来替代完整命令。例如：
+
+```shell
+$ git config --global alias.co checkout
+$ git config --global alias.br branch
+$ git config --global alias.ci commit
+$ git config --global alias.st status
+```
+
+这意味着：
+
+1. 当要输入`git checkout`时，只需要输入`git co`，即可执行`git checkout`（检出标签）命令。
+2. 当要输入`git branch`时，只需要输入`git br`，即可执行`git branch`（查看分支）命令。
+3. 当要输入`git commit`时，只需要输入`git ci`，即可执行`git commit`（提交暂存）命令。
+4. 当要输入`git status`时，只需要输入`git st`，即可执行`git status`（查看状态）命令。
+
