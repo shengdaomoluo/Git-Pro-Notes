@@ -708,9 +708,94 @@ $ git remote rm origin
 * `-a`选项在运行`tag`命令时，用于创建附注标签；
 * `-m`选项用于指定一条将会存储在标签中的信息。<br>如果在创建附注标签时，不指定`-m`选项，那么 Git 会启动文本编辑器要求输入信息。
 
+**`git show …`**命令用于查看标签信息及与之对应的提交信息。<br>`…`表示具体的表签名。例如：`v0.0.1`、`v1.4`等。
 
+#### 创建轻量标签
 
+**`git tag …`**命令用于创建一个轻量标签。不需要使用`-a`、`-m`或`-s`选项，只需要提供标签名。其中`…`表示标签名。
 
+例如创建表签名为`v0.0.1-lw`的轻量标签，使用下面的命令：
 
+```shell
+$ git tag v0.0.1-lw
+```
 
+#### 后期打标签
+
+可以对过去的提交打标签。也就是对某个已经提交了的项目标注标签。
+
+**`git tag -a … *****`**命令可以为过去已经提交的项目标注附注标签。其中：
+
+* `…`表示标签名；
+* `*****`表示指定提交的校验和（或部分校验和）。
+
+例如给已提交的项目`文本编辑器简明使用教程_以 vim 为例.md`打上名为`vim-tutorial_0.1`的附注标签，其已提交的校验和为`663a3e3215d12713eb6e311240ee4649378a86a0`可以使用以下命令：
+
+```shell
+$ git tag -a vim-tutorial_0.1 663a3332 -m "给已提交的项目《文本编辑器简明使用教程_以 vim 为例.md》打上名为《vim-tutorial_0.1》的附注标签"
+```
+
+执行`git tag`命令，显示名为 `vim-tutorial_0.1`在标签列表中：<img src="/Users/wangxiaolong/Library/Application Support/typora-user-images/image-20250516103915329.png" alt="包含 vim-tutorial_0.1标签的标签列表" style="zoom:67%;" />
+
+执行`git show vim-tutorial_0.1`命令，显示该标签的具体情况：<br><img src="https://p.ipic.vip/njvgxo.png" alt="vim-tutorial_0.1标签的详细信息" style="zoom:67%;" />
+
+### 2.6.3 共享标签
+
+默认情况下，`git push`命令会并不会传送标签到远程服务器上。在创建完标签后，必须**明确地**推送标签到共享服务器（例如 GitHub）上。
+
+**`git push origin <tagname>`**命令可以将标签推送到共享服务器上。其中：<br>`origin`为服务器的简写名；`<tagname>`为要推送的标签名。
+
+例如，将标签名为`vim-tutorial_0.1`的标签，推送到服务器简写名为`GPNs`的 GitHub 仓库中，可以使用以下命令：
+
+```shell
+$ git push GPNs vim-tutoriai_0.1
+```
+
+执行 `git push GPNs vim-tutorial_0.1`命令，显示如下：<br><img src="https://p.ipic.vip/w5md7j.png" alt="image-20250516110831438" style="zoom:67%;" />
+
+带有`--tags`选项的`git push`命令，可以将所有不在远程仓库服务器上的标签全部传送到那里。
+
+例如,执行命令`git push GPNs --tags`可以将已创建的标签：`show`、`v0.0.1`、`v0.0.1-lw`和`v0.01`全部传送到远程仓库的服务器上（注：标签`vim-tutorial_0.1`已经使用命令`git push GPNs vim-tutorial_0.1`上传至远程仓库服务器）。显示如下：<br><img src="https://p.ipic.vip/kuuuv2.png" alt="image-20250516112208952" style="zoom:67%;" />
+
+### 2.6.4  删除标签
+
+**`git tag -d <tagname>`**命令，可以删除本地仓库上的标签。但是，该命令不会从任何远程仓库服务器中移除标签。
+
+例如要删除名为`show`的标签，可以使用命令：
+
+```shell
+$ git tag -d show
+```
+
+执行`git tag -d show`显示如下：<br><img src="https://p.ipic.vip/8689ta.png" alt="image-20250516113430355" style="zoom:67%;" />
+
+**`git push <remote> :refs/tags/<tagname>`**命令用来更新远程仓库服务器上的标签。该命令有两种变体：
+
+1. **`git push <remote> :refs/tags/<tagname>`**，命令的含义是：将冒号前面的空值（null value）推送到远程表签名。
+
+   例如：删除远程仓库服务器`GPNs`中名为`show`的标签，可执行以下命令：
+
+   ```shell
+   $ git push GPNs :refs/tags/show
+   ```
+
+   执行`git push GPNs :refs/tags/show`命令，显示如下：<br><img src="/Users/wangxiaolong/Library/Application Support/typora-user-images/image-20250516125142179.png" alt="image-20250516125142179" style="zoom:67%;" />
+
+2. **`git push <remote> --delete <tagname>`**命令的含义是：删除远程仓库的某个标签。
+
+   例如：删除远程仓库服务器`GPNs`中名为`v0.01`的标签，可以执行以下命令：
+
+   ```shell
+   $ git push GPNs --delete v0.01
+   ```
+
+   执行上述命令，显示如下：<br><img src="/Users/wangxiaolong/Library/Application Support/typora-user-images/image-20250516125658659.png" alt="image-20250516125658659" style="zoom:67%;" />
+
+### 2.6.5 检出标签
+
+**`git checkout <tagname>`**命令查看某个标签所指向的文件版本。
+
+这个命令的执行有些复杂，所以，在尚未完全掌握 Git 的情况下，在执行该命令后，可以撤销该命令的执行。
+
+**`git switch -`**命令用于撤消`git checkout <tagname>`命令。
 
