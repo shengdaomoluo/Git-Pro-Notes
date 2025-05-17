@@ -827,3 +827,64 @@ $ git config --global alias.st status
 * 对本地文件进行更改、暂存并提交这些更改；
 * 浏览仓库从创建到目前的所有更改历史。
 
+# 3  Git分支
+
+使用分支意味着你可以把你的次要工作从开发主线上分离开来，以免对开发主线带来不利影响。
+
+## 3.1  分支简介
+
+Git保存的不是文件的变化或者差异，而是一系列不同时刻的**快照**（snapshot）。
+
+在进行提交操作时，Git 会保存一个**提交对象**（commit object）。该提交对象包含：
+
+* 一个指向暂存内容快照的指针。
+* 作者的姓名和邮箱地址；
+* 提交时输入的信息；
+* 指向它的父对象的指针。
+
+根据提交的情况不同，所产生的提交对象也各有差异：
+
+* 首次提交产生的提交对象没有父对象；
+* 普通提交产生的提交对象有一个父对象；
+* 多个分支合并产生的提交对象有多个父对象。
+
+为了更加形象地说明，我们假设现在有一个工作目录，里面包含了三个将要被暂存和提交的文件。暂存操作会为每一个文件计算校验和，然后把当前版本的文件快照保存到 Git 仓库中，最终将校验和加入到暂存区域等待提交。
+
+* Git 使用 **blob**对象来保存当前版本的文件快照。
+
+以将文件`editor_sample.txt`进行暂存并提交为例。执行下面的命令：
+
+```shell
+$ git add editor_sample.txt # 对文件《edittor_sample.txt》执行暂存操作
+$ git commit -m 'initial commit editor_sample.txt' # 对文件《edittor_sample.txt》执行提交操作
+```
+
+显示如下：<br><img src="https://p.ipic.vip/esj233.jpg" style="zoom:67%;" />
+
+当使用`git commit`命令进行提交时，Git会先计算每一个子目录的校验和，然后Git仓库中这些校验和保存为树对象。随后，Git便会创建一个提交对象，它除了包含上面提到的那些信息之外，还包含指向这个数对象（项目根目录）的指针。
+
+现在，Git仓库中有五个对象：
+
+1. 三个blob对象：
+   * 保存着三个文件的快照。
+2. 一个**树**对象：
+   * 列出目录的内容，并指定三个blob对象分别储存的文件。
+3. 一个**提交**对象：
+   * 包含指向前树对象的指针和所有提交信息。
+
+```mermaid
+---
+title: 首次提交对象及其树结构
+---
+graph LR
+A[98ca9<br><big>**提交对象**</big><br>commit size<br>tree 92ec2<br>author XiaoLong Wang<br>commiter Xiaolong Wang] --> B[92ec2<br>**<big>树对象</big>**<br>tree size<br>blob 5b1d3 README<br>blob 911e7 LICENCE<br>blob cba0a    test.rb]
+B[92ec2<br>**<big>树对象</big>**<br>tree size<br>blob 5b1d3 README<br>blob 911e7 LICENCE<br>blob cba0a test.rb] --> C[5b1d3<br>**<big>blob</big>** size]
+B[92ec2<br>**<big>树对象</big>**<br>tree size<br>blob 5b1d3 README<br>blob 911e7 LICENCE<br>blob cba0a test.rb] --> D[911e7<br>**<big>blob</big>** size]
+B[92ec2<br>**<big>树对象</big>**<br>tree size<br>blob 5b1d3 README<br>blob 911e7 LICENCE<br>blob cba0a test.rb] --> E[cba0a<br>**<big>blob</big>** size]
+```
+
+做些修改后再提交，那么这次产生的提交对象会包含一个指向上次提交对象（父对象）的指针。<br><img src="https://p.ipic.vip/6f2pbj.jpg" alt="提交对象及其父对象" style="zoom:67%;" />
+
+Git 的分支，实质上仅仅是指向提交对象的可变指针。Git 的默认分支名字是`main`。但`main`分支并不是一个特殊的分支。它和其他的分支并没有区别。之所以几乎每一个仓库都有`main`分支，是因为`git init`命令默认创建了它，并且大多数人懒得去改动它。
+
+在多次提交操作之后，其实已经有一个指向最后那个提交对象的`main`分支。`main`分支会在每次提交时自动向前移动。
