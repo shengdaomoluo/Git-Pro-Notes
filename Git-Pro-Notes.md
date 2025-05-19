@@ -1073,3 +1073,33 @@ $ git add editor_sample.txt # 对文本文件editor_sample.txt进行暂存
 $ git commit -m 'main branch commit' #对文件 editor_sample.txt 的修改进行提交
 ```
 
+用图示表示执行情况的图表如下：
+
+```mermaid
+---
+title: 项目分叉历史
+---
+flowchart RL
+87ab2-->f30ab-->34ac2-->98ca9
+c2b9e-->f30ab
+testing-->87ab2
+main==>c2b9e
+subgraph pointer_old
+direction TB
+**HEAD**==>main
+end
+subgraph pointer_new
+direction BT
+testing
+end
+```
+
+可以使用命令`git log`命令查看历史分叉。执行`git log --oneline --decorate --graph --all`，会输出提交历史、各个分支的指向以及项目分支的分叉情况。
+
+执行上述命令，显示如下情况：<br>![项目分支的分叉情况](https://p.ipic.vip/poouo0.jpg)
+
+由于 Git 的分支实质上仅是包含所指对象校验和（长度为 40 的 SHA-1 值字符串）的文件，所以它的创建和销毁都异常高效。 创建一个新分支就相当于往一个文件中写入 41 个字节（40 个字符和 1 个换行符）。
+
+要**创建一个新分支**并且同时**切换到新分支**可以高效地一步完成。即执行以下命令：
+
+**`git checkout -b <newbranchname>`**可以在创建新分支的同时切换到该分支当中去。
