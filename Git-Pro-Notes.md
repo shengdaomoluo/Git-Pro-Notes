@@ -888,3 +888,188 @@ B[92ec2<br>**<big>树对象</big>**<br>tree size<br>blob 5b1d3 README<br>blob 91
 Git 的分支，实质上仅仅是指向提交对象的可变指针。Git 的默认分支名字是`main`。但`main`分支并不是一个特殊的分支。它和其他的分支并没有区别。之所以几乎每一个仓库都有`main`分支，是因为`git init`命令默认创建了它，并且大多数人懒得去改动它。
 
 在多次提交操作之后，其实已经有一个指向最后那个提交对象的`main`分支。`main`分支会在每次提交时自动向前移动。
+
+```mermaid
+---
+title: A branch and its commit history
+---
+flowchart TB
+Cm_C-->Cm_B-->Cm_A
+A@{ shape: tag-doc, label: "V1.0" }-->f30ab@{ shape: win-pane, label: "f30ab" }
+HEAD[<big>**HEAD**</big>]-->main-->f30ab
+subgraph Cm_C
+  direction TB
+ f30ab-->Snapshot_C@{ shape: stadium, label: "Snapshot_C" }
+end
+subgraph Cm_B
+direction TB
+34ac2@{ shape: win-pane, label: "34ac2" }-->Snapshot_B@{ shape: stadium, label: "Snapshot_B" }
+end
+subgraph Cm_A
+direction TB
+98ca9@{ shape: win-pane, label: "98ca9" }-->Snapshot_A@{ shape: stadium, label: "Snapshot_A" }
+end
+```
+
+## 3.2  创建一个新分支
+
+**`git branch <branchname>`**命令用于创建一个新的分支。该命令的实质是创建一个可以移动的新的指针。
+
+比如，创建一个名为`testing`的分支，可以使用以下命令：
+
+```shell
+$ git branch testing
+```
+
+这会在当前所在的提交对象上创建一个指针。
+
+```mermaid
+---
+title: 两个指向相同提交历史的分支
+---
+flowchart RL
+main-->f30ab
+f30ab-->34ac2-->98ca9
+**testing**-->f30ab
+subgraph pointer_old
+direction TB
+main
+end
+subgraph pointer_new
+direction BT
+**testing**
+end
+```
+
+`git branch`命令仅仅**创建**了一个新分支，并不会自动切换到新分支中去。
+
+```mermaid
+---
+title: HEAD 指向当前所在的分支
+---
+flowchart RL
+main==>f30ab
+f30ab-->34ac2-->98ca9
+testing-->f30ab
+subgraph pointer_old
+direction TB
+**HEAD**==>main
+end
+subgraph pointer_new
+direction BT
+testing
+end
+```
+
+Git又是人生之道当前在哪一个分支上呢？<br>很简单，Git 有一个名为`HEAD`的指针。这个指针指向当前所在的本地分支（可以将`HEAD`想象成当前分支的别名）。
+
+在上面的例子中，你仍然在`main`分支上。
+
+**`git log <--oneline> --decorate`**命令查看各个分支当前所指的对象。其中主要是**`--decorate`**选项提供了这一功能。
+
+正如所见，当前`main`和`testing`分支均指向校验和以`f30ab`开头的提交对象。<br>其中`HEAD`指向`mian`。
+
+## 3.3  切换到一个分支
+
+**`git checkout`**命令可以切换到一个已存在的分支。也就是指针`HEAD`指向了另一个已存在的分支。这时，被指向的分支的“别名”被称为`HEAD`。
+
+例如，将当前分支`main`切换到已存在的分支`testing`，也就是将指针`HEAD`从分支`main`指向分支`testing`<br>（这时，分支`testing`的“别名”为`HEAD`）。
+
+下图即显示了`git checkout testing`命令的执行结果：<br><img src="https://p.ipic.vip/p2cqac.jpg" style="zoom:67%;" />
+
+执行命令`git log --oneline --decorate`，可以看到`HEAD`指针已指向了`testing`分支。见下图：<br><img src="https://p.ipic.vip/8090ge.jpg" style="zoom:67%;" />
+如下图所示：<br>
+
+```mermaid
+---
+title: HEAD 指向当前所在的分支
+---
+flowchart RL
+main-->f30ab
+f30ab-->34ac2-->98ca9
+testing==>f30ab
+subgraph pointer_old
+direction TB
+main
+end
+subgraph pointer_new
+direction BT
+**HEAD**==>testing
+end
+```
+
+那么，这样的实现方式会给我们带来什么好处呢？现在不妨提交一次，以对文本文件`editor_sapmle.txt`进行修改，并在`testing`分支上进行提交为例。执行以下命令：
+
+```shell
+$ git vim editor_sample.txt # 打开文本编辑器 vim 对文件 editor_sample.txt 进行修改保存
+$ git add editor_sample.txt # 对文本文件editor_sample.txt进行暂存
+$ git commit -m 'new branch:testing commit' #对文件 editor_sample.txt 的修改进行提交
+```
+
+执行完毕，显示如下：<br>![在新分支上做提交操作的情况](https://p.ipic.vip/gcg7ns.jpg)
+
+用图示表示执行情况的图表如下：
+
+```mermaid
+---
+title: HEAD 分支随着提交操作自动向前移动
+---
+flowchart RL
+main-->f30ab
+87ab2-->f30ab-->34ac2-->98ca9
+testing==>87ab2
+subgraph pointer_old
+direction TB
+main
+end
+subgraph pointer_new
+direction BT
+**HEAD**==>testing
+end
+```
+
+如图所示，`testing`分支向前移动了，但是`main`分支却没有移动，它仍然指向运行`git checkout`时说指的对象。
+
+现在切换会`main`分支做一观察，执行以下命令：
+
+```shell
+$ git checkout main
+```
+
+执行上述命令，显示如下：<br>![切换到main 分支的情况](https://p.ipic.vip/u9ddal.jpg)
+
+用图示表示执行情况的图表如下：
+
+```mermaid
+---
+title: 检出时HEAD随之移动
+---
+flowchart RL
+main==>f30ab
+87ab2-->f30ab-->34ac2-->98ca9
+testing-->87ab2
+subgraph pointer_old
+direction TB
+**HEAD**==>main
+end
+subgraph pointer_new
+direction BT
+testing
+end
+```
+
+这条命令做了两件事：
+
+1. 使**HEAD**指针指回到`main`分支；
+2. 将工作目录恢复成`main`分支所指向的快照内容。<br>也就是说，现在做修改的话，项目始于一个较旧的版本。
+
+本质上来讲，忽略`testing`分支所做的修改，以便于向里一个方向进行开发。
+
+以对文本文件`editor_sapmle.txt`进行修改，并在`testing`分支上进行提交为例。执行以下命令：
+
+```shell
+$ git vim editor_sample.txt # 打开文本编辑器 vim 对文件 editor_sample.txt 进行修改保存
+$ git add editor_sample.txt # 对文本文件editor_sample.txt进行暂存
+$ git commit -m 'main branch commit' #对文件 editor_sample.txt 的修改进行提交
+```
+
