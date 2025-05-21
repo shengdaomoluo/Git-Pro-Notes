@@ -911,7 +911,7 @@ direction TB
 end
 ```
 
-## 3.2  创建一个新分支
+### 3.1.1  创建一个新分支
 
 **`git branch <branchname>`**命令用于创建一个新的分支。该命令的实质是创建一个可以移动的新的指针。
 
@@ -969,7 +969,7 @@ Git又是人生之道当前在哪一个分支上呢？<br>很简单，Git 有一
 
 正如所见，当前`main`和`testing`分支均指向校验和以`f30ab`开头的提交对象。<br>其中`HEAD`指向`mian`。
 
-## 3.3  切换到一个分支
+### 3.1.2  切换到一个分支
 
 **`git checkout`**命令可以切换到一个已存在的分支。也就是指针`HEAD`指向了另一个已存在的分支。这时，被指向的分支的“别名”被称为`HEAD`。
 
@@ -1103,3 +1103,264 @@ end
 要**创建一个新分支**并且同时**切换到新分支**可以高效地一步完成。即执行以下命令：
 
 **`git checkout -b <newbranchname>`**可以在创建新分支的同时切换到该分支当中去。
+
+## 3.2  新建分支与合并分支的基本使用
+
+让我们用在实际工作中可能会用到的工作流程来演示一个简单地创建分支以及合并分支的实例。我们将遵循以下步骤：
+
+1. 在网站上开展一些工作。
+
+2. 为实现某个新用户的需求，在网站上创建一个分支。
+
+3. 在新建的分支上开展工作。<br>就在此时，我们接到了一个电话说，网站遇到了严重问题需要立即修复。我们将立即开展一下的工作：
+
+4. 转换到你的线上分支（production branch）。
+
+   > production branch，是一个在版本控制系统中用于存放生产环境代码的分支。通常开发团队会在本地创建这个分支，用于开发和测试代码，确保一切正常后再将其合并到主分支（“master” 或 ”main“）。
+
+5. 为解决严重问题新建一个分支（即 hotfix branch），并在该分支上修复故障并测试。
+
+6. 测试完成后，将 hotfix branch 合并到线上分支（production branch）并推送。
+
+7. 转换到最初的新用户需求中去，继续工作……
+
+整个工作流程中，该网站涉及到四个分支：
+
+* master 分支，即网站的主分支。
+* 为解决网站新用户问题而建立的新分支。
+* production branch，即线上分支，网站开发团队在本地建立的用于开发和测试代码。
+* Hotfix branch：为解决网站严重问题修复网站而建立的分支。
+
+我们整个的工作流程如下：
+
+1. 网站基础性工作；
+2. 解决网站新用户问题的工作。
+3. 解决网站突发问题的工作。
+
+### 3.2.1 新建分支的基本操作
+
+首先，假定我们已经在这个网站上开展一些工作，并且在网站主分支（master branch）上已经完成了一些提交。
+
+```mermaid
+---
+title: 网站主分支（master branch）的历史提交
+---
+flowchart RL
+master==>C2([commit_**C2**])
+	subgraph COMMIT
+		direction TB
+		C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+	end
+    
+    
+```
+
+我们开始解决网站新客户提出的问题，该问题在公司“问题跟踪系统”（issue-tracking syestem）中编号为：#53。我们可以这个问题称为“iss3”。
+
+使用带有参数`-b`的`git checkout`命令，新建一个分支并切换到该分支上：
+
+```shell
+$ git checkout -b iss53 # 新建分支名为“iss53”
+```
+
+这条命令等价于以下两条命令的组合：
+
+```shell
+$ git branch iss53 # 新建名为“iss53”的分支
+$ git checkout iss53 # 从“master”分支切换到“iss53”分支
+```
+
+```mermaid
+---
+title: 创建新分支“iss53 并切换到该分支”
+---
+flowchart RL
+master --o C2([commit_**C2**])
+iss53==>C2([commit_**C2**])
+	subgraph COMMIT
+		direction RL
+		C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+	end
+```
+
+我们继续在iss53问题上工作，并完成了一些提交。在这个过程中`iss53`分支在不断地向前推移。如下图所示：
+
+```mermaid
+---
+title: “iss53”分支随着工作的进展向前推进
+---
+flowchart RL
+master --o C2([commit_**C2**])
+iss53==>C3
+	subgraph COMMIT
+		direction RL
+		C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+	end
+```
+
+此时，我们接到了网站遇到了严重问题需要立即修复的电话通知。在 Git 中，我们仅需要切换会`master branch`即可开展网站严重问题的修复工作。但是，在切换分支前请务必做到：<br>**工作目录和暂存区中所有的修改已经提交完毕**，分支处在一个“**干净**”的状态下。否则，会因为有未提交的修改（changes）会与切换分支相冲突。
+
+现在，假定我们做出的所有修改（changes）已经提交完毕。可以使用命令`git checkout master`切换到`master branch`中。我们可以专心解决网站遇到的严重问题。<br>**请牢记**：<big>*当切换分支的时候，Git 会重置工作目录，使工作目录和该分支最后一次提交完全一样*。</big>
+
+接下来，我们要对严重问题进行修复。第一步是创建一个名为“热修复补丁程序”的分支（hotfix branch），并切换到该`hotfix branch`上开展相关工作。
+
+我们使用命令`git checkout -b hotfix`即可完成。如下图所示：
+
+```mermaid
+---
+title: 基于“master”分支的严重问题修复分支“hotfix”
+---
+flowchart RL
+master[<big>**master**</big>] --o C2([commit_**C2**])
+iss53 --o C3
+hotfix==oC4
+	subgraph COMMIT
+		direction RL
+		C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+		C4([commit_**C4**])-->C2
+	end
+```
+
+我们可以对热修复补丁程序（hotfix）做测试，确保它能够修复严重问题。然后，将热修复补丁程序分支（hotfix branch）合并到`master branch`并部署到线上（production）。我们可以使用以下命令来完成该项工作：
+
+```shell
+$ git checkout master # 切换到“master”分支
+$ git merge hotfix # 将“hotfix”分支与“master”分支合并
+```
+
+如下图所示：<br>![合并分支（1）](https://p.ipic.vip/zwkyk1.jpg)
+
+在上图中，我们注意到“快进（Fast-forward”）这个词。由于我们想要合并到分支`hotfix`说指向的`C4`提交（commit）是所在的`C2`提交（commit）的直接后继，因此 Git 会直接将指针向前移动（指针`master`向前移到`C4`提交）。<br>换句话说（To phrase that another way），当你试图合并两个分支时，如果顺着一个分支走下去能够到达另一个分支，那么 Git 在合并两者的时候，只会简单地将指针向前推进（指针右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做“**快进（fast-forward）**”。
+
+现在，最新的修改已经在 `master`分支所指向的提交快照中，我们可以着手发布该修复了。如下图所示：
+
+```mermaid
+---
+title: “master”被快进（fast-forward）到“hotfix”
+---
+flowchart RL
+iss53 --o C3
+master["<big>**master**</big>"]==>hotfix ==o C4
+	subgraph COMMIT
+		direction RL
+		C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+		C4([commit_**C4**])-->C2
+	end
+```
+
+截至目前，严重问题已经修复完毕。我们要继续进行“iss53”问题的解决工作了。在开展此项工作前，我们应该先删除`hotfix`分支，因为我们再无需使用该分支了。可以使用带`-d`选项的`git branch`命令来删除`hotfix`分支。命令如下：
+
+```shell
+$ git branch -d hotfix
+```
+
+接下来，我们可以切换到“半成品（work-in-progress）分支”，即`iss53 branch`来解决“iss53”问题。使用`git checkout`命令即可搞定。
+
+```shell
+$ git checkout iss53
+```
+
+以上“两步”的工作，如下图所示：
+
+```mermaid
+---
+title: 删除“hotfix”分支继续在“iss53”分支上开展工作
+---
+flowchart RL
+iss53[<big>**iss53**</big>] ==o C5
+master["<big>**master**</big>"] --o C4
+	subgraph COMMIT
+		direction RL
+		C5([commit_**C5**])-->C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+		C4([commit_**C4**])-->C2
+	end
+```
+
+我们在`hotfix`分支上所做的工作并没有包含到`iss53`分之中。如果你需要拉取在`hotfix`分支上所做的修改，可以使用`git merge master`命令将 `master`分支合并入`iss53`分支。或者可以等到`iss53`完成气使命后，再将其合并回`master`分支。
+
+### 3.2.2  分支合并到基本操作
+
+假定我们已经解决了新客户在网站上的"iss53"问题，并打算将该项工作合并入`master`分支。为此，我们要将`iss53 branch`合并到`master branch`中。我们只需要检出到`master brach`，然后执行`git merge`命令即可完成。如下图所示：<br>![合并分支（2）](https://p.ipic.vip/2lyopl.jpg)
+
+这和我们之前合并 `hotfix`分支的时候有所不同。在当前情况下，我们的开发历史从一个更早的地方开始分叉开来（diverged）。因为，`master`分支所在提交并不是`iss53`分支所在提交的直接祖先（direct ancestor），Git 必须做一些额外的工作。出现这种情况的时候，Git 会使用两个分支的末端所指的快照（`C4`和`C5`）以及两个分支的共同祖先（`C2`），做一个简单的三方（three-way）合并。具体入下图：
+
+```mermaid
+---
+title: 一次典型的合并中所用到的三个快照
+---
+flowchart RL
+iss53[<big>**iss53**</big>] ==o C5
+master["<big>**master**</big>"] --o C4
+C5([commit_**C5**])-->C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+C4([commit_**C4**])-->C2
+	subgraph Common Ancestor
+		direction RL
+		C2([commit_**C2**])
+	end
+	subgraph Snapshot to Merge Into
+		direction RL
+		C4([commit_**C4**])
+	end
+	subgraph Snapshot to Merge Into
+		direction RL
+		C5([commit_**C5**])
+	end
+
+```
+
+和之前将分支指针向前推进所不同的是，Git 将此次三方合并到结果做了一个新的快照并且自动创建一个新的提交指向它。这个被称作一次合并提交，它的特别之处在与它有不止一个父提交。入下图所示：
+
+```mermaid
+---
+title: 一个合并提交
+---
+flowchart RL
+iss53[<big>**iss53**</big>] ==o C5
+master["<big>**master**</big>"] ==o C6
+C6([commit_**C6**])-->C5([commit_**C5**])-->C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+C6([commit_**C6**])-->C4([commit_**C4**])-->C2
+```
+
+我们已经完成了合并，不再需要`iss53`分支了，也可以在任务追踪系统（issue-tracking-system）中关闭此项任务，并删除这个分支。执行以下命令：
+
+```shell
+$ git branch -d iss53
+```
+
+命令执行完毕后，如下图所示：
+
+```mermaid
+---
+title: 删除无用的“iss53”分支
+---
+flowchart RL
+
+master["<big>**master**</big>"] ==o C6
+C6([commit_**C6**])-->C5([commit_**C5**])-->C3([commit_**C3**])-->C2([commit_**C2**])-->C1([commit_**C1**])-->C0([commit_**C0**])
+C6([commit_**C6**])-->C4([commit_**C4**])-->C2
+```
+
+### 3.2.3  遇到分支合并冲突的基本操作
+
+如果我们在不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就无法彻底地合并它们。
+
+假设`iss53`分支的修改和`hotfix`分支的修改都涉及到了同一文件的相同部分，且修改并不相同，在两个分支合并时就会产生合并冲突。如下图所示：<br>![分支合并冲突（1）](https://p.ipic.vip/sb4pl3.jpg)
+
+此时，Git 虽然执行了`git merge`命令，但没有自动地创建一个新的合并提交。Git会暂停提交操作，直到我们解决了该冲突。
+
+我们可以执行`git status`来查看那些因为包含合并冲突而处于未合并（unmerged）状态的文件。如下图所示：![分支合并冲突（2）](https://p.ipic.vip/r0hxve.jpg)
+
+任何因包含合并冲突而有待解决的文件，都会以**未合并状态（Unmerged）**标识出来。Git 会在有冲突的文件中加入**标准的冲突解决标记（standard conflict-resolution markers）**。我们可以打开这些包含冲突的文件，然后手动解决冲突。这些包含冲突的文件区段，类似于下图所示：<br>![分支合并冲突（3）](https://p.ipic.vip/vxzwet.jpg)
+
+这表示`HEAD`所指示的版本（也就是`master`分支所在的位置，因为在运行`git merge`命令时已经检出到了这个分支）在这个区段的上半部分（`=======`的上半部分），而`iss53`分支所指示的版本在`=======`的下半部分。为了解决冲突，我们必须选择使用由`======`分割的两部分中的一个，或者我们也可以自行合并这些内容。
+
+例如，我们可以把这段内容换成下面的样子来解决冲突：
+
+![分支冲突解决示例](https://p.ipic.vip/o13vvr.jpg)
+
+上述冲突解决方案仅保留了其中一个分支的修改，并且`<<<<<<<`，`=======`，和`>>>>>>>`这些行被完全删除了。
+
+在解决了所有文件里的冲突之后，对每个文件使用`git add`命令来将其标记为冲突已解决。一旦暂存这些原本有冲突的文件，Git 就会将它们标记为冲突已解决。
+
+**`git mergetool`**命令用来启动一个人合适的可视化合并工具，并带领我们一步一步解决冲突。
+
