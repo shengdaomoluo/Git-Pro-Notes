@@ -1364,3 +1364,127 @@ C6([commit_**C6**])-->C4([commit_**C4**])-->C2
 
 **`git mergetool`**命令用来启动一个人合适的可视化合并工具，并带领我们一步一步解决冲突。
 
+## 3.3  分支管理
+
+**`git branc`**命令用于显示当前所有分支的一个列表。
+
+执行`git branch`命令，显示如下：<br><img src="https://p.ipic.vip/p99swu.jpg" alt="执行'git branch'命令的情况" style="zoom:67%;" />
+
+注意：在上图中，`main`分支前的`*`字符：它代表现在检出到那个分支（也就是 HEAD 指针所指向的分支）。这意味着，如果此时提交（commit），`main`分支将会随着新的工作向前移动。
+
+**`git branch -v`**命令用于查看每一个分支的最后一次提交。<br>执行`git branch -v`命令，显示如下：<br><img src="https://p.ipic.vip/w6eqp2.jpg" alt="执行'git branch -v'命令的情况" style="zoom:67%;" />
+
+`git branch`命令的两个参数选项：**`--merged`**和**`--no-merged`**用于过滤当前分子列表中**已经合并（`--merged`）**或**尚未合并（`--no-merged`）**到当前分支的分支。
+
+* 执行命令**`git branch --merged`**，查看已经合并到当前分支的分支。如下图所示：<br>![执行'git branch --merged'命令的情况](https://p.ipic.vip/eu4ca1.jpg)
+
+* 执行命令**`git branch --no-merged`**，查看 所有包含未合并工作的分支。执行情况如下图所示：<br>![执行'git branch --no-merged'命令的情况](https://p.ipic.vip/adonlf.jpg)
+
+`git branch`的另外两个参数选项**`-d`**或者**`-D`**都是用来删除不需要继续使用的分支。不同的是：
+
+* **`git branch -d <branchname>`**命令用于删除已经真和到另一个分支的分支。<br>比如：`testing`分支已经合并到`main`分支。
+* **`git branch -D <branchname>`**命令，在想要删除的分支中还有尚未合并的工作，此时删除会丢失该工作内容的情况下，强制删除该分支。
+
+## 3.4  分支开发工作流
+
+现在，我们已经掌握了建立分支和合并分支的基础知识。我们可以将这些知识，应用到实际的工作当中去。
+
+### 3.4.1  长期分支
+
+许多使用 Git 的开发者都乐于使用这样的方式来工作：
+
+* 他们只在`master`分支上保留完全稳定的代码——即已经发布或即将发布的代码。
+  * 他们还有一些名为`develop`或者`next`的平行分支——被用来做后续开发或者测试稳定性。
+    * 等到这些分支中的内容达到了稳定状态，会被合并入`master`分支。
+
+事实上，我们刚才讨论的是随着不断地提交，指针在不断地右移的情况。也就是是说：
+
+* “稳定分支”（例如 `master`分支）的指针总是落后于最新的提交一大截。
+* “前沿分支”（例如`develop`或`next`分支）的指针总是指向最新的提交。
+
+如下图所示：
+
+```mermaid
+---
+title: 趋于稳定分支的线性图
+---
+flowchart RL
+main[**<big>master</big>**]==>C0
+develop[**<big>develop</big>**]==>C6
+topic[**<big>topic</big>**]==>C8
+subgraph Commit History
+	direction TB
+	C9([……])-->C8([C8])-->C7([C7])-->C6([C6])-->C5([C5])-->C4([C4])-->C3([C3])-->C2([C2])-->C1([C1])-->C0([C0])
+	end
+```
+
+通常，把它们想象成流水线（work silos）可能更好理解一些，那些完成测试的提交会被遴选到更加稳定的流水线上去。
+
+![趋于稳定分支的流水线（”silo“）视图](https://p.ipic.vip/t7hxfr.jpg)
+
+我们可以用这种方法来维护不同层次的稳定性。一些大型的项目还有一个`proposed`（建议）分支或`pu: proposed updates`（建议更新）分支，这个分支包含一些不够成熟的内容，因而不能进入`next`或者`master`分支。<br>这么做，可以使分支间具有不同级别的稳定性；当分支中的内容具有一定程度的稳定性之后，再把它们合并入具有更高级别稳定性的分支中。<br>应当强调的是，使用多个长期分支的方法并非必要，但是这么做通常会很有帮助，尤其是在一个非常庞大或者复杂的项目中。
+
+### 3.4.2  主题分支
+
+主题分支对任何规模的项目都适用。主题分支是一种短期分支，它被用来实现单一特性或其相关工作。
+
+考虑这样一个例子：我们在`master`分支上工作到`C1`，这时为了解决一个问题而新建`iss91`分支，在`iss91`分支上工作到`C4`，然后对`iss91`分支上要解决的问题又有了新的解决方案，于是我们新建了一个`iss91v2`分支试图用该新方案来解决问题。接着我们又回到了`master`分支工作了一会，我们又冒出了一个不太确定的想法，便在`C10`的时候新建一个`dumbidea`分支，并在上面做了些实验。
+
+```mermaid
+---
+title: 拥有多个主题分支的提交历史
+---
+flowchart TB
+	subgraph 分支: master
+		direction TB
+		C10-->C9-->C3-->C1-->C0
+	end
+	subgraph 分支: iss91
+		direction TB
+		C6-->C5-->C4-->C2-->C1
+	end
+	subgraph 分支: iss91v2
+		direction TB
+		C11-->C8-->C7-->C4
+	end
+	subgraph 分支: dumbidea
+		direction TB
+		C13-->C12-->C10
+	end
+```
+
+现在，我们假设两件事情：
+
+1. 我们决定使用在`iss91v2`分支中的方案解决那个问题；
+2. 我们将`dumbidea`分支拿给同事看过后，被认为是惊人之举。
+
+这时，我们可以抛弃`iss91`分支，然后把另外两个分支合并入`master`分支。最终，我们的提交历史看起来像下面这个样子：
+
+```mermaid
+---
+title: 合并了‘dumbidea’和‘iss91v2’分支之后的提交历史
+---
+flowchart TB
+	subgraph 分支: dumbidea
+		direction TB	
+	end
+C14-->C11
+subgraph 分支: iss91v2
+		direction TB
+	end
+C2-->C1
+	subgraph 分支: master
+		direction TB
+		C14-->C13-->C12-->C10-->C9-->C3-->C1-->C0
+	end
+	subgraph   
+		direction TB
+		C11-->C8-->C7-->C4-->C2
+	end
+	
+	
+```
+
+更多关于分支工作流的细节将在《分布式 Git》中进行介绍。
+
+请牢记，当我们在做这些操作的时候，这些分支全部都存在于本地。也就是说，在我们新建和合并分支的时候，所有这一切都只发生在本地的 Git 版本库中——没有与服务器发生交互。
