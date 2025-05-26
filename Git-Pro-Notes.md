@@ -1488,3 +1488,134 @@ C2-->C1
 更多关于分支工作流的细节将在《分布式 Git》中进行介绍。
 
 请牢记，当我们在做这些操作的时候，这些分支全部都存在于本地。也就是说，在我们新建和合并分支的时候，所有这一切都只发生在本地的 Git 版本库中——没有与服务器发生交互。
+
+## 3.5  远程分支
+
+**远程引用**（remote reference）是指对远程仓库的引用（指针），该引用包括分支、标签等。
+
+* 使用命令`git remote ls-remote <remote>`来获得远程引用的完整列表。
+  * 例如执行命令`git remote ls-remote <GPNs>`，显示如下：![执行该命令的情况](https://p.ipic.vip/5k33f7.jpg)
+* 使用命令`git show remote <remote>获得远程分支的更多信息。
+  * 例如执行命令`git show remote GPNs`，显示如下：![执行该命令的情况](https://p.ipic.vip/bylyed.jpg)
+
+**远程跟踪分支**是远程分支状态的引用。远程分支是本地分支在远程仓库中的反映。<br>每当与本地仓库与远程仓库进行通信时，Git 都会将本地仓库的情况准确地移动到远程仓库中。
+
+远程仓库分支采用`<remote>/<branch>`的形式命名。
+
+* 如果想查看最后一次与远程仓库`origin`通信时`master`分支的状态，可以查看`origin/master`分支。
+* 如果与同事合作解决一个问题，在本地仓库中建立了`iss53`分支，并且他们在远程仓库`origin` 中推送了一个`iss53`分支，然而在服务器上的分支会以`origin/iss53`来表示。
+
+举例说明。假设网络里有一个在`git.ourcompany.com`的 Git 服务器。如果从这里克隆，Git 的`clone`命令将自动把Git 服务器上的远程仓库命名为`origin`，拉取（pull down）所有的数据创建一个指向远程仓库（`origin`）`master`分支的指针，并且将该指针命名为`origin/master`。Git 也会给一个与`origin`的`master`分支在指向同一个地方的本地`master`分支。图示如下：
+
+```mermaid
+---
+title: 克隆之后的服务器与本地仓库
+---
+flowchart TB
+	subgraph git.ourcompany.com
+		direction RL
+		Git[master]-.-oC1
+		C1([f4265])-->C2([a6b4c])-->C3([0b743])
+	end
+	subgraph My_Computer
+		direction RL
+		C1_1([f4265])-->C2_2([a6b4c])-->C3_3([0b743])
+		origin/master-.-oC1_1
+		local-.-oC1_1
+		subgraph Remote Branch
+			direction TB
+			origin/master
+		end
+		subgraph Local branch
+			direction BT
+			local[master]
+		end
+	end
+git.ourcompany.com == git clone janedoe @git.ourcompany.com:project.git ==> My_Computer	
+```
+
+我们在本地`master`分支上开展工作；与此同时，其他人将工作推送（push）提交到了`git.ourcompany.com`并且更新了它的`master`分支，这就是说彼此之间的提交历史走向了不同的方向。即便如此，只要我们不与`origin`服务器通信并不拉取（pull）数据，本地的`orgin/master`指针就不会移动。
+
+如下图所示：
+
+```mermaid
+---
+title: git.ourcompany.com的工作状况
+---
+graph RL
+master==oC1_2
+C1_2([190a3])-->C1_1([31b8e])-->C1([f4265])-->C2([a6b4c])-->C3([0b743])
+A@{ shape: bow-rect, label: "someone else pushes" }-.->C1_2
+A@{ shape: bow-rect, label: "someone else pushes" }-.->C1_1
+```
+
+```mermaid
+---
+title: My-Computer的工作状况
+---
+flowchart RL
+C5([893cf])-->C4([a38de])-->C3([f4265])-->C2([a6b4c])-->c1([0b743])
+orgin/master==oC3
+master==oC5
+```
+
+**`git fetch <remote>`**命令用于与给定的远程仓库同步数据。<br>该命令用于查找`<remote>`是哪一个服务器，从中抓取（fetch）本地没有的数据并更新（update）本地数据库，移动本地`origin/master`指针到更新之后的位置。
+
+如下图所示：
+
+```mermaid
+---
+title: git fetch:更新本地的远程跟踪分支
+---
+flowchart TB
+git.ourcompany.com== git fetch origin==>My_Computer
+	subgraph git.ourcompany.com
+		direction RL
+		master==oC1_2
+		C1_2([190a3])-->C1_1([31b8e])-->C1([f4265])-->C2_1([a6b4c])-->C3_1([0b743])
+	end
+	subgraph My_Computer
+		direction RL
+		C5([893cf])-->C4([a38de])-->C3([f4265])-->C2([a6b4c])-->c1([0b743])
+		C7([190a3])-->C6([31b8e])-->C3
+		MyComputer[master]==oC5
+		origin/master==oC7
+    end
+
+```
+
+为了演示多个远程仓库与远程分支的情况，假定我们有另一个内部 Git 服务器，仅服务于自己的开发团队。这个服务器位于`git.team1.ourcompany.com`。<br>我们可以运行`git remote add`命令添加一个新的远程仓库引用到当前的项目，我们将这个远程仓库命名为`teamone`，将作为其完整 URL 的缩写。关于`git remote add`命令会在《Git 基础》中详细说明。
+
+如图所示：![添加另一个远程仓库](https://p.ipic.vip/jgxvoi.jpg)
+
+现在，可以运行`git fetch teamone`来抓取（fetch）远程仓库`teamone`有（的数据），而本地没有的数据。因为那台服务器上现有的数据是`origin`服务器的一个子集（subset），所以 Git 并不会抓取数据而是会设置远程跟踪分支`teamone/master`指向`teamone`的`master`分支。
+
+```mermaid
+---
+title: 远程跟踪分支teamone/master
+---
+graph TB
+git.team1.ourcompany.com==git fetch teamone==>MyCompany
+	subgraph git.ourcompany.com
+		direction RL
+		C1o([190a3])-->C2o([31b8e])-->C3o([f4265])-.->C4o([………])
+		ourcompany[master]-.-oC1o
+		end
+	subgraph git.team1.ourcompany.com
+		direction RL
+		C1t([31b8e])-->C2t([f4265])-.->C3t([………])
+		team1[master]-.-oC1t
+	end
+	subgraph MyCompany
+		direction RL
+		C5([893cf])-->C4([a38de])-->C3([f4265])-->C2([a6b4c])-->c1([0b743])
+		C7([190a3])-->C6([31b8e])-->C3
+		teamone/master-.-oC6
+		origin/master-.-oC7
+		my[master]-.-oC5
+	end
+	
+```
+
+
+
