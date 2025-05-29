@@ -1617,5 +1617,99 @@ git.team1.ourcompany.com==git fetch teamone==>MyCompany
 	
 ```
 
+### 3.5.1  推送
 
+当我们想要公开分享一个分支时，需要将其推送（push）到有写入权限的远程仓库上。本地分支并不会自动与远程仓库同步——必须显式地（explicitly）推送想要分享的分支。<br>这样，我们可以把不愿意分享的内容放到私人分支上，而将需要和他人协作的内容推送到公开分支上。
+
+如果我们希望和别人一起在名为`serverfix`的分支上工作，你可以像推送第一个分支那样推送它。执行命令`git push <remote> <branch>`。
+
+以将`serverfix`分支推送到远程仓库`GPNs`为例，执行以下命令：
+
+```shell
+$ git push <GPNs> <serverfix>
+```
+
+如图所示：![执行`git push GPNs serverfix`的情况](https://p.ipic.vip/q989l6.jpg)
+
+在执行`git push <remote> <branch>`的过程中，很多工作被 Git 简化了。Git 自动将`serverfix`分支名展开为`refs/heads/serverfix: refs/heads/severfix`，这个扩展的含义是：“推送本地的`serverfix`分支来更新远程仓库上的`serverfix`分支”。
+
+`git push <remote> <branch>`有一个具有相同功能的命令——`git push <remote> <branch>: <branch>`，这条命令的含义是“推送本地的`”分支名“`分支，将其作为远程仓库的`”分支名“`分支”。要推送到远程仓库的分支的名字还可以与本地的分支名不同，可以通过执行本命令实现。
+
+例如：我们要将本地的`serverfix`分支推送到名为`GPNs`的远程仓库，并给新建的远程仓库分支起名为`awesomebranch`，可以执行以下命令：
+
+```shell
+$ git push GPNs serverfix: awesomebranch
+# serverfix为本地分支名；awesomebranch为在远程仓库中新建的分支名；serverfix分支和 awesomebranch 是一样的，只是名字不同而已
+```
+
+下一次其他协作者从服务器上抓取（fetch）数据时，会在本地生成一个远程分支`origin/serverfix`，指向服务器的`serverfix`分支的引用。<br>要特别注意的是：当抓取新的远程跟踪分支时，本地不会自动生成一份可编辑的副本（copy）。在这种情况下，不会有一个新的`serverfix`分支——只有一个不可修改的`origin/serverfix`指针。<br>可以执行`git merge origin/serverfix`将这些工作合并到当前所在的分支。如果想要在自己的`serverfix`分支上工作，可以将其建立在远程跟踪分支上：`git checkout -b serverfix origin/serverfix`，这会建立一个名为`serverfix` 的本地分支，并且起点位于`origin/serverfix`。
+
+### 3.5.2  跟踪分支
+
+从一个远程跟踪分支检出（check out）会自动创建所谓的“跟踪分支”（该”跟踪分支“跟踪的分支叫做”上游分支“）。跟踪分支位于本地，与上游分支（远程分支）有直接关系。如果在一个跟踪分支上输入`git pull`，Git 能自动识别去某个服务器上抓取、合并到那个分支。
+
+当克隆一个仓库时，通常会自动创建一个跟踪`origin/master`分支的`master`分支。但是，还可以自由做出以下选择：
+
+* 设置其他的跟踪分支；
+* 设置在其它远程仓库上的跟踪分支；
+* 不跟踪`master`分支。
+
+实现以上功能可以执行命令`git checkout -b <branch> <remote>/<branch>`。这是一个十分常见的操作，所以 Git提供了`--track`的快捷方式，完整的命令为`git checkout --track <remote>/<branch>`。
+
+在`--track`的快捷方式的基础上，还有一个捷径。如果尝试检出的分支同时符合下列条件：
+
+1. 不存在（即以往的分支中没有该分支）。
+2. 只有一个名字与之匹配的远程分支。
+
+那么，Git 就会自动创建一个跟踪分支。执行命令`git checkout <branchname>`<br>如果要将本地分支与远程分支设置为不同的名字，可以使用`-b`选项来设置不同的分支名：`git checkout -b <new_branchname> <remote>/<branchname>`。
+
+修改本地分支正在跟踪的上游分支，可以使用选项`-u`或`--set-upstream-to`选项，在命令`git branch`来显式地设置。完整的命令如下：
+
+```shell
+$ git -u <remote>/<branchname>
+# 或
+¥ git --set-upstream-to <remote>/<branchname>
+```
+
+例如，我们想将本地分支`main_one`从跟踪上游远程分支`GPNs/main`切换到跟踪远程分支`GPNs/serverfix`可以执行以下命令实现：
+
+```shell
+$ git checkout main_one # 检出到分支`main_one`
+$ git branch -u GPNs/serverfix # 跟踪远程分支`serverfix`
+```
+
+执行上述命令的情况如下图：![](https://p.ipic.vip/6znn20.jpg)
+
+再举一例，将本地分支`serverfix`从跟踪的上游远程分支`GPNs/main_one`，切换到远程分支`GPNs/serverfix`，可以执行以下命令实现：
+
+```shell
+$ git checkout serverfix # 检出到分支`serverfix`
+$ git branch --set-upstream-to GPNs/serverfix # 跟踪远程分支`serverfix`
+```
+
+执行上述命令的情况如下图：![](https://p.ipic.vip/5tqsck.jpg)
+
+命令**`git branch -vv`**用于查看设置的所有跟踪分支，所有的本地分支和详细信息都将陈列出来。如下图所示：![](https://p.ipic.vip/avuwc0.jpg)
+
+### 3.5.3  拉取（pulling）
+
+命令`git fetch`用于从服务器上抓取（fetch）本地没有的数据，但不会修改工作目录中的内容。
+
+**`git pull`**命令用于从服务器上抓取本地没有的数据，并且将数据合并入分支。也就是说，<br>**`git pull` = `git fetch` + `git merge`**。由于`git pull`命令是两个命令的组合，因此它的使用起来总是令人迷惑，所以单独显式地使用`git fetch`和`git merge`命令会更好一些。
+
+### 3.5.4  删除远程分支
+
+**`git push <remote> --delete <branchname>`**用于删除远程分支。<br>`git branch -d <branchname>`用于删除本地分支。
+
+例如，我们要删除远程分支和本地分支`serverfix`，分别执行以下命令：
+
+```shell
+$ git push GPNs --delete serverfix # 删除远程分支`serverfix`
+```
+
+如下图所示：![](https://p.ipic.vip/zmgcgd.jpg)
+
+```shell
+$ git branch -d serverfix # 删除本地分支`serverfix`
+```
 
