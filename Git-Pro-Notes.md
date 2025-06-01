@@ -1713,3 +1713,58 @@ $ git push GPNs --delete serverfix # 删除远程分支`serverfix`
 $ git branch -d serverfix # 删除本地分支`serverfix`
 ```
 
+## 3.6  变基
+
+在 Git 中，有两种主要的方法将更改（changes）从一个分支整合到另一个分支中去：
+
+* 合并（merge）
+* 变基（rebase）
+
+这一节的主要内容是学习什么是变基、如何使用变基，为什么变基是一个高效的工具以及在什么情况下，它是无法适用的。
+
+### 3.6.1  变基的基础知识
+
+如果回顾《合并的基础知识》那一节，就会看到如何对工作在不同的分支上进行分叉（diverge）和提交（commit）。如下图所示：
+
+```mermaid
+---
+title: 简明的分叉历史
+---
+graph RL
+C3([C3])--> C2([C2])-->C1([C1])-->C0([C0])
+C4-->C2
+	subgraph experiment branch
+		direction TB
+		experiment--oC4([C4])
+	end
+	subgraph master branch
+		direction BT
+		master--oC3
+	end
+```
+正如前面所提到的，最简单地整合分支的命令是`merge`。该命令在两个最新的分支快照（C3 和 C4）和它们最近的共同祖先分支（C2）进行了三方（three-way）合并，创造了一个新的快照（并提交）。如下图所示：
+```mermaid
+---
+title: 通过合并来整合分叉的历史工作
+---
+graph RL
+C5([C5])-->C3([C3])-->C2([C2])-->C1([C1])-->C0([C0])
+C5-->C4-->C2
+	subgraph experiment branch
+		direction TB
+		experiment--oC4([C4])
+	end
+	subgraph master branch
+		direction BT
+		master--oC5
+	end
+```
+其实，还有一种方法：可以提取在`C4`中引入的补丁和修改（change），然后在`C3`的基础上再应用一次。在 Git 中，这种操作叫做**变基**（rebasing）。使用`rebase`命令，将提交到某一个分支上的所有修改全部移至另一个分支上，就好像“重新播放”（replay）一样。
+
+在这个例子中，你可以检出`experiment`分支，然后将它变基到`master`分支上：
+
+```shell
+$ git checkout experiment
+$ git rebase master
+```
+
