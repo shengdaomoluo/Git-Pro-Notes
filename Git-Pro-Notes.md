@@ -1759,7 +1759,7 @@ C5-->C4-->C2
 		master--oC5
 	end
 ```
-其实，还有一种方法：可以提取在`C4`中引入的补丁和修改（change），然后在`C3`的基础上再应用一次。在 Git 中，这种操作叫做**变基**（rebasing）。使用`rebase`命令，将提交到某一个分支上的所有修改全部移至另一个分支上，就好像“重新播放”（replay）一样。
+其实，还有一种方法：可以提取在`C4`中引入的补丁和修改（change），然后在`C3`的基础上再应用一次。在 Git 中，这种操作叫做**变基**（rebasing）。使用`rebase`命令，将提交到某一个分支上的所有修改全部移至另一个分支上，就好像“重放”（replay）一样。
 
 在这个例子中，你可以检出`experiment`分支，然后将它变基到`master`分支上：
 
@@ -1817,5 +1817,216 @@ master--oC4'
 
 * 合并（merge）是把最终结果合在一起。
 
-  
 
+### 3.6.2  更加有趣的变基
+
+在对两个分支进行变基时，所生成的“重放”（replay）并不一定要在目标分支上应用，我们也可以指定另外的一个分支进行应用。就像从一个主题分支中再分出一个主题分支的提交历史中的例子那样：<br>在分支`master`上创建了一个分支`server`，在此分支上添加了一些功能，并提交了`C3`和`C4`。然后在`C3`上创建了另一个主题分支`client`，添加了一些功能，提交了`C8`和`C9`。最后，我们回到了`server`分支，提交了`C10`。如下图所示：
+
+```mermaid
+---
+title: 从一个主题分支再分出一个主题分支的提交历史
+---
+graph RL
+C6([**<big>C6</big>**])-->C5([**<big>C5</big>**])-->C2([**<big>C2</big>**])-->C1([**<big>C1</big>**])
+master-.-oC6
+C10([**<big>C10</big>**])-->C4([**<big>C4</big>**])-->C3([**<big>C3</big>**])-->C2
+server-.-oC10
+C9([**<big>C9</big>**])-->C8([**<big>C8</big>**])-->C3([**<big>C3</big>**])
+client-.-oC9
+```
+假设我们决定将`client`分支的修改（`C8`和 `C9`）合并到`master`分支上，但不添加`server`分支上的修改。要完成这项任务可以使用`git rebase`命令中的`--onto`选项。完整命令如下：
+```shell
+$ git rebase --onto master server client
+```
+以上命令的意思是：“取出`client`分支，找到它从`server`分支分叉之后的补丁，然后把这些补丁在`master`分支上重放（replay）一遍”。
+
+```mermaid
+---
+title: 截取主题分支上的另一个主题分支，然后变基到其他分支
+---
+graph RL
+C9'([**<big>C9'</big>**])-->C8'([**<big>C8'</big>**])-->C6([**<big>C6</big>**])-->C5([**<big>C5</big>**])-->C2([**<big>C2</big>**])-->C1([**<big>C1</big>**])
+master-.-oC6
+client-.-oC9'
+C10([**<big>C10</big>**])-->C4([**<big>C4</big>**])-->C3([**<big>C3</big>**])-->C2
+server-.-oC10
+C9([<small>C9</small>])-.->C8([<small>C8</small>])-.->C3([**<big>C3</big>**])
+```
+
+现在可以快进（fast-forward）合并`master`分支了。可以使用命令`git checkout master`和`git merge client`，快进合并`master`分支，使之包含来自`client`分支的修改:
+
+```shell
+$ git checkout master
+$ git merge client
+```
+
+如图下图所示：
+
+```mermaid
+---
+title: 快进合并‘master’分支，使之包含来自‘client’分支的修改
+---
+graph RL
+C9'([**<big>C9'</big>**])-->C8'([**<big>C8'</big>**])-->C6([**<big>C6</big>**])-->C5([**<big>C5</big>**])-->C2([**<big>C2</big>**])-->C1([**<big>C1</big>**])
+master-.-oC9'
+client-.-oC9'
+C10([**<big>C10</big>**])-->C4([**<big>C4</big>**])-->C3([**<big>C3</big>**])-->C2
+server-.-oC10
+```
+
+
+
+假设我们决定将`server`分支上的修改也整合进来。使用`git rebase <basebranch> <topicbranch>`命令可以直接将主题分支（即本例中的`server`）变基到目标分支（即`master`）上。这样做，省去了先切换到`server`分支，再对其执行变基命令的多个步骤。具体命令如下：
+
+```shell
+$ git rebase master server
+```
+
+如下图所示，将`server`分支中的修改变基到`master`分支上，也就是将`server`分支上的提交（commit）“续接”到了`master`分支的后面。
+
+```mermaid
+---
+title: 将‘server’分支上的修改变基到‘master’分支上
+---
+graph RL
+C10'([**<big>C10'</big>**])-->C4'([**<big>C4'</big>**])-->C3'([**<big>C3'</big>**])-->C9'([**<big>C9'</big>**])-->C8'([**<big>C8'</big>**])-->C6([**<big>C6</big>**])-->C5([**<big>C5</big>**])-->C2([**<big>C2</big>**])-->C1([**<big>C1</big>**])
+master-.-oC9'
+client-.-oC9'
+C10([C10])-.->C4([C4])-.->C3([C3])-.->C2
+server-.-oC10'
+```
+
+然后，我们可以快进（fast-forward）合并主分支（`master`），执行如下命令：
+
+```shell
+$ git checkout master
+$ git merge server
+```
+
+至此，`client`和`server`分支中的修改都已经整合到了主分支（master）里。我们可以删除`server`、`client`两个分支。执行`git branch -d <branchname`命令如下：
+
+```shell
+$ git branch -d server
+$ git branch -d client
+```
+
+最终，提交历史变成下图中的样子：
+
+```mermaid
+---
+title: 最终的提交历史
+---
+graph RL
+C10'([**<big>C10'</big>**])-->C4'([**<big>C4'</big>**])-->C3'([**<big>C3'</big>**])-->C9'([**<big>C9'</big>**])-->C8'([**<big>C8'</big>**])-->C6([**<big>C6</big>**])-->C5([**<big>C5</big>**])-->C2([**<big>C2</big>**])-->C1([**<big>C1</big>**])
+master-.-oC10'
+
+
+```
+
+### 3.6.3  变基的风险
+
+奇妙的变基并非完美无缺。使用变基（rebase）要遵循一条准则：
+
+**如果提交存在于你的仓库之外，而他人可能基于这些提交进行开发，那么不要执行变基。**
+
+变基操作的实质是丢弃一些现有的提交，然后相应地新建一些内容一样但实际上并不相同的提交。如果我们已经将提交推送到某个仓库，而其他人已经从该仓库拉取（pull）了提交并进行了后续工作。此时，如果我们用`git rebase`命令重新整理了提交并再次推送，那么他人因此将不得不将他们手头的工作与你的提交进行整合；如果接下来我们还要拉取并整合他们修改过的提交，事情就会变得一团糟。
+
+让我们来看一个在公开仓库中执行变基操作所带来的问题。<br>假设我们从一个中央服务器克隆然后在它的基础上进行了一些开发。我们的提交如图所示：
+
+```mermaid
+---
+title: clone 一个仓库，然后在它的基础上开展一些工作
+---
+graph TB
+git.team1.ourcompany.com==clone==>My_Computer
+	subgraph git.team1.ourcompany.com
+		direction RL
+		master-.-oC1([C1])
+	end
+	subgraph My_Computer
+		direction RL
+		C3([C3])-->C2([C2])-->C1'([C1])
+		teamone/master-.-oC1'
+		point[master]-.-oC3
+	end
+```
+
+然后，某人又向中央服务器提交了一些修改，其中还包括一次合并。我们抓取了这些远程分支上的修改，并将其合并到你本地的开发分支，然后你的提交历史就会变成这样：
+
+```mermaid
+---
+title: 抓取别人的提交，合并到自己的开发分支
+---
+graph TB
+git.team1.ourcompany.com==Fetch and Clone==>My_Computer
+	subgraph git.team1.ourcompany.com
+		direction RL
+		C6([C6])-->C4([C4])-->C1([C1])
+		C6([C6])-->C5([C5])-->C1([C1])
+		master-.-oC6([C6])
+	end
+	subgraph My_Computer
+		direction RL
+		C6'([C6])-->C4'([C4])-->C1'([C1])
+		C6'([C6])-->C5'([C5])-->C1'([C1])
+		C7([C7])-->C3([C3])-->C2([C2])-->C1'([C1])
+		C7-->C6'
+		teamone/master-.-oC6'
+		point[master]-.-oC7
+	end
+```
+
+接下来，这个人又决定把合并操作回滚，改用变基；继而又用`git push --force`命令覆盖了服务器上的提交历史。之后我们从服务器抓取更新，会发现多出来一些新的提交。
+
+```mermaid
+---
+title: 有人推送了经过变基的提交，并丢弃了你的本地开发所基于的一些提交
+---
+graph TB
+git.team1.ourcompany.com==Fetch and Bring down the new commits==>My_Computer
+	subgraph git.team1.ourcompany.com
+		direction RL
+		C6([C6])-.->C4([C4])-.->C1([**<big>C1</big>**])
+		C6([C6])-.->C5([**<big>C5</big>**])-->C1([**<big>C1</big>**])
+		C4''([**<big>C4'</big>**])-->C5([**<big>C5</big>**])
+		master-.-oC4''
+	end
+	subgraph My_Computer
+		direction RL
+		C6'([C6])-->C4'([C4])-->C1'([C1])
+		C6'([C6])-->C5'([C5])-->C1'([C1])
+		C7([C7])-->C3([C3])-->C2([C2])-->C1'([C1])
+		C7-->C6'
+		C4_2([C4'])-->C5'
+		teamone/master-.-oC4_2
+		point[master]-.-oC7
+	end
+```
+
+现在，我们和他都陷入到了尴尬的境地。如果我们执行`git pull`命令，将会创造一个和并提交将来自两条提交历史的内容，合并在了一起。最终本地仓库将如图所示：
+
+```mermaid
+---
+title: 我们将相同的内容又合并了一次，生成了一个新的提交
+---
+graph TB
+git.team1.ourcompany.com==Git pull and Creat a merge commit==>My_Computer
+	subgraph git.team1.ourcompany.com
+		direction RL
+		C6([C6])-.->C4([C4])-.->C1([**<big>C1</big>**])
+		C6([C6])-.->C5([**<big>C5</big>**])-->C1([**<big>C1</big>**])
+		C4''([**<big>C4'</big>**])-->C5([**<big>C5</big>**])
+		master-.-oC4''
+	end
+	subgraph My_Computer
+		direction RL
+		C6'([C6])-->C4'([C4])-->C1'([C1])
+		C6'([C6])-->C5'([C5])-->C1'([C1])
+		C7([C7])-->C3([C3])-->C2([C2])-->C1'([C1])
+		C8([C8])-->C7-->C6'
+		C8-->C4_2([C4'])-->C5'
+		teamone/master-.-oC4_2
+		point[master]-.-oC8
+	end
+```
+如果此时我们执行`git log`命令，将会看到两个提交的历史记录完全一样：一样作者、一样的日期以及一样的信息。这些都非常令人迷惑。<br>更进一步，如果我们将此推送到服务器上，就会把那些变基的提交再次引用，这会更加令人迷惑。很明显其他开发者并不想在提交历史中看到`C4`和`C6`，因为之前就是他把这两个提交（`C4`和`C6`）通过变基丢弃的。
