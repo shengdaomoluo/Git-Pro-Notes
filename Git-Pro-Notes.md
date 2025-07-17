@@ -2505,3 +2505,61 @@ AAAAB3NzaC1yc2EAAAADAQABAAABAQDEwENNMomTboYI+LJieaAY16qiXiH3wuvENhBG...
 
 现在，网络相关的 Git 命令依然能够正常工作，但是开发者用户已经无法得到一个普通 shell 了。正如输出信息所提示的，你也可以在 `git`用户的主目录下建立一个目录，来对`git-shell`命令进行一定程度的自定义。要了解更多有关自定义 shell 的信息，请运行`git help shell`
 
+## 4.5 Git 守护进程
+
+接下来，我们将通过“Git”协议建立一个基于守护程序的仓库。对于快速且无需授权的 Git 数据访问，这是一个理想之选。<br>**请注意**，因为其不包含授权服务，任何通过该协议管理的内容将在其网络上公开。
+
+* 如果运行在防火墙之外的服务器上，它应该只对那些公开的只读项目服务。
+* 如果运行行动防火墙之内的服务器上，它可用于支撑大量参与人员或自动系统（用于持续集成或编译的主机）只读访问的项目，这样可以省去逐一配置 SSH 公钥的麻烦。
+
+无论何时，该 Git 协议都是相对容易设定的。通常，我们只需要以守护进程的形式运行该命令：
+
+```shell
+$ git deamon --base-path=/srv/git/ /srv/git/
+```
+
+* `--reuseaddr`选项允许服务器在无需等待旧连接超时的情况下重启；
+* `--base-path`选项允许用户在未完全指定路径的条件下克隆项目；
+* `/srv/git/`结尾的路径将告诉 Git 守护进程从何处寻找仓库来导出。
+
+如果有防火墙正在运行，我们需要开放端口 9418 的通信权限。
+
+我们可以通过许多方式将该进程以守护进程的方式运行，这主要取决于我们所使用的操作系统。
+
+由于在现代的 Linux 发行版中，`systemd`是最常见的初始化系统，因此你可以用它来达到此目的。只要在`/etc/systemd/system/git-deamon.service`中放一个文件即可，其内容如下：
+
+```shell
+[Unit]
+Description=Start Git Deamon
+
+[Service]
+ExecStart=/usr/bin/git deamon --reuseaddr --base-path=/srv/git/ /srv/git/
+
+Restart=always
+RestartSec=500ms
+
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=git-deamon
+
+User=git
+Group=git
+
+[Install]
+WantedBy=multi-user.target
+```
+
+我们可能会注意到，这里以`git`启动的 Git 驻留程序同时使用了 Group 和 User 权限。按需修改它并确保提供的用户在此系统上。此外，请确保 Git 二进制文件位于`/usr/bin/git`，必要时可以修改此路径。
+
+最后，我们需要运行`systemctl enable git-deamon`以让它在系统启动时自动运行，这样也能让它通过`systemctl start git-deamon`启动，通过`systemctl stop git-deamon`停止。
+
+在其他系统中，我们可以使用`sysvinit`系统中的`xinetd`脚本，或者另外的方式来实现——只要我们能够将其命令守护进程化并实现监控。
+
+接下来，我们需要告诉 Git 哪些仓库允许基于服务器的无授权访问。我们可以在每个仓库下创建一个名为`git-deamon-export-ok`的文件来实现。
+
+```shell
+$ cd /path/to/project.git
+$ touch git-deamon-export-ok
+```
+
+该文件允许 Git 提供无需授权的项目访问服务。
