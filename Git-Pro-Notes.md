@@ -2371,7 +2371,137 @@ $ git init --shared
 * 让 SSH 服务器通过某个 LDAP 服务，或者其他已经设定好的集中授权机制来进行授权。
   * 这要每个用户可以获得主机的 shell 访问权限，任何 SSH 授权机制都可视为是有效的。
 
+## 4.3  生成 SSH 公钥
 
+如前所述，许多 Git 服务器都使用 SSH 公钥进行认证。为了向 Git 服务器提供 SSH 公钥，如果某系统用户尚未拥有密钥，必须事先为其生成一份。这个过程在所有操作系统中都是相似的。
 
+首先，我们需要确认自己是否已经拥有密钥。<br>默认情况下，用户的 SSH 密钥存储在其`~/.ssh`目录下。进入该目录，便可以快速确认自己是否拥有密钥。执行 命令`cd ~/.ssh`和`ls`命令，会看到以下结果：
 
+![查看 SSH](https://p.ipic.vip/zdmlk2.jpg)
+
+我们需要找到一对以`id_rsa`（或`id_dsa`）命名的文件，其中一个带有`.pub`扩展名。在上例中，即是`id_rsa`和`id_rsa.pub`。后缀为`.pub`的文件是我们的公钥，另一个则是与之相对应的私钥。
+
+如果找不到这样的文件（或者根本没有`.ssh`目录），我们可以通过运行`ssh-keygen`程序来创建。
+
+* 在 Linux/macOS 系统中，`ssh-keygen`随 SSH 软件包提供；
+* 在 Windows 上，该程序包含于 MSysGit 软件包中。
+
+## 4.4 设置服务器
+
+我们来看看如何配置服务器端的 SSH 访问。本例中，我们将使用`authorized_keys`方法来对用户进行认证。同时，我们假设自己使用的操作系统是标准的 Linux 发行版，比如 Ubuntu。
+
+首先，创建一个Git用户账户和该用户的`.ssh`目录。
+
+```shell
+$ sudo adduser git
+$ su git
+$ cd
+$ mkdir .ssh && chmod 700 .ssh
+$ touch .ssh/authorized_keys && chmod 600 .ssh/authorized_keys
+```
+
+接着，我们需要为系统用户`git`的`authorized_keys`文件添加一些开发者SSH 公钥。假设我们已经获得了若干受信任的公钥，并将这些受信任的公钥保存在临时文件中。与前文类似，这些公钥看起来是这样的：
+
+```shell
+$ cat /tmp/id_rsa.john.pub
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCB007n/ww+ouN4gSLKssMxXnBOvf9LGt4L
+ojG6rs6hPB09j9R/T17/x4lhJA0F3FR1rP6kYBRsWj2aThGw6HXLm9/5zytK6Ztg3RPKK+4k
+Yjh6541NYsnEAZuXz0jTTyAUfrtU3Z5E003C4oxOj6H0rfIF1kKI9MAQLMdpGW1GYEIgS9Ez
+Sdfd8AcCIicTDWbqLAcU4UpkaX8KyGlLwsNuuGztobF8m72ALC/nLF6JLtPofwFBlgc+myiv
+O7TCUSBdLQlgMVOFq1I2uPWQOkOWQAHukEOmfjy2jctxSDBQ220ymjaNsHT4kgtZg2AYYgPq
+dAv8JggJICUvax2T9va5 gsg-keypair
+```
+
+将这些公钥加入系统用户`git`的`.ssh`目录下`authorized_keys`文件的末尾：
+
+```shell
+$ cat /tmp/id_rsa.john.pub >> ~/.ssh/authorized_keys
+$ cat /tmp/id_rsa.josie.pub >> ~/.ssh/authorized_keys
+$ cat /tmp/id_rsa.jessica.put >> ~/.ssh/authorized_keys
+```
+
+现在，我们来为开发者新建一个空仓库。可以借助带`--bare`选项的`git init`命令来做到这一点，该命令在初始化仓库时不会创建工作目录：
+
+```shell
+$ cd /srv/git
+$ mkdir project.git
+$ cd project.git
+$ git init --bare
+Initialized empty Git repository in /srv/git/project.git/
+```
+
+接着，John、Josie 或者 Jessica 中的任意一人可以将他们项目的最初版本推送到这个仓库中，他们只需将仓库设置为项目的远程仓库并向其推送分支。<br>**请注意**：每添加一个新项目，都需要有人登录服务器取得 shell，并创建一个裸仓库。
+
+我们假定这个设置了`git`用户和 Git 仓库的服务器使用`gitserver`作为主机名。同时，假设该服务器运行在内网，并且我们已经在 DNS 配置中将`gitserver`指向此服务器。那么我们可以运行如下命令（假定`myproject`是已有项目且其中已包含文件）：
+
+```shell
+# on John's computer
+$ cd myproject
+$ git init
+$ git add .
+$ git commit -m 'initial commit'
+$ git remote add origin git@gitserver:/srv/git/project.git
+$ git push origin master
+```
+
+此时，其他开发者可以克隆此仓库，并推回各自的改动，步骤很简单：
+
+```shell
+$ git clone git@gitserver:/srv/git/project.git
+$ cd project
+$ vim README
+$ git commit -m 'fix for the README file'
+$ git push origin master
+```
+
+通过这种方法，我们可以快速搭建一个具有读写权限、面向多个开发者的 Git 服务器。
+
+需要注意的是，目前所有（所有获得授权的）开发者用户都能以系统用户`git`的身份登录服务器从而获得一个普通 shell。如果我们想对此加以限制，则需要修改`/etc/passwd`文件中（`git`用户所对应）的 shell 值。
+
+借助一个名为`git-shell`的受限 shell 工具，我们可以方便地将用户`git`的活动限制在与 Git 相关的范围内。该工具随 Git 软件包一同提供。如果将`git-shell`设置为用户`git`的登录 shell（login shell），那么该用户便不能获得此服务器的普通 shell 访问权限。若要使用`git-shell`，需要用它替换掉 bash 或 csh，使其成为该用户的登录 shell。<br>为进行上述操作，受限我们必须确保`git-shell`的完整路径名已存在于`/etc/shells`文件中：
+
+```shell
+$ cat /etc/shells # see if git-shell is already in there. If not...
+$ which git-shell # make sure git-shell is installed on your seystem.
+$ sudo -e /etc/shells # and add the path to git-shell from last command
+```
+
+现在我们可以使用`chsh <usrername> -s  <shell>`命令修改任一系统用户的 shell：
+
+```shell
+$ sudo chsh git -s $(which git-shell)
+```
+
+这样，用户`git`就只能利用 SSH 连接对 Git 仓库进行推送和拉取操作，而不能登录机器并取得普通 shell。如果试图登录，我们会发现尝试被拒绝，像这样：
+
+```shell
+$ ssh git@gitserver
+fatal: Interactive git shell is not enabled.
+hint: ~/git-shell-commands should exist and have read and execute access.
+Connection to gitserver closed.
+```
+
+此时，用户仍可通过 SSH 端口转发来访问任何可达的 git 服务器。如果我们想要避免它，可编辑`authorized_keys`文件并在所有想要限制的公钥之前添加以下选项：
+
+```shell
+no-port-forwarding,no-X11-forwarding,no-agent-forwarding, no-pty
+```
+
+其结果如下：
+
+```shell
+$ cat ~/.ssh/authorized_keys
+no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa
+AAAAB3NzaC1yc2EAAAADAQABAAABAQCB007n/ww+ouN4gSLKssMxXnBOvf9LGt4LojG6rs6h
+PB09j9R/T17/x4lhJA0F3FR1rP6kYBRsWj2aThGw6HXLm9/5zytK6Ztg3RPKK+4kYjh6541N
+YsnEAZuXz0jTTyAUfrtU3Z5E003C4oxOj6H0rfIF1kKI9MAQLMdpGW1GYEIgS9EzSdfd8AcC
+IicTDWbqLAcU4UpkaX8KyGlLwsNuuGztobF8m72ALC/nLF6JLtPofwFBlgc+myivO7TCUSBd
+LQlgMVOFq1I2uPWQOkOWQAHukEOmfjy2jctxSDBQ220ymjaNsHT4kgtZg2AYYgPqdAv8JggJ
+ICUvax2T9va5 gsg-keypair
+
+no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa
+AAAAB3NzaC1yc2EAAAADAQABAAABAQDEwENNMomTboYI+LJieaAY16qiXiH3wuvENhBG...
+```
+
+现在，网络相关的 Git 命令依然能够正常工作，但是开发者用户已经无法得到一个普通 shell 了。正如输出信息所提示的，你也可以在 `git`用户的主目录下建立一个目录，来对`git-shell`命令进行一定程度的自定义。要了解更多有关自定义 shell 的信息，请运行`git help shell`
 
